@@ -39,5 +39,8 @@
 
   <export>
     <build_type>ament_cmake</build_type>
+    <!--Official package misses this export to be registered as a controller-->
+    <controller_interface plugin="${prefix}/mecanum_drive_controller.xml"/>
   </export>
+
 </package>

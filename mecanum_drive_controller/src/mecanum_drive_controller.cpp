@@ -176,7 +176,7 @@ controller_interface::CallbackReturn MecanumDriveController::on_configure(
   {
     // Tf State publisher
     tf_odom_s_publisher_ =
-      get_node()->create_publisher<TfStateMsg>("~/tf_odometry", rclcpp::SystemDefaultsQoS());
+      get_node()->create_publisher<TfStateMsg>(params_.tf_topic, rclcpp::SystemDefaultsQoS());
     rt_tf_odom_state_publisher_ = std::make_unique<TfStatePublisher>(tf_odom_s_publisher_);
   }
   catch (const std::exception & e)
@@ -190,8 +190,8 @@ controller_interface::CallbackReturn MecanumDriveController::on_configure(
   rt_tf_odom_state_publisher_->lock();
   rt_tf_odom_state_publisher_->msg_.transforms.resize(1);
   rt_tf_odom_state_publisher_->msg_.transforms[0].header.stamp = get_node()->now();
-  rt_tf_odom_state_publisher_->msg_.transforms[0].header.frame_id = params_.odom_frame_id;
-  rt_tf_odom_state_publisher_->msg_.transforms[0].child_frame_id = params_.base_frame_id;
+  rt_tf_odom_state_publisher_->msg_.transforms[0].header.frame_id = params_.tf_frame+params_.odom_frame_id;
+  rt_tf_odom_state_publisher_->msg_.transforms[0].child_frame_id = params_.tf_frame+params_.base_frame_id;
   rt_tf_odom_state_publisher_->msg_.transforms[0].transform.translation.z = 0.0;
   rt_tf_odom_state_publisher_->unlock();
 
@@ -259,12 +259,17 @@ void MecanumDriveController::reference_unstamped_callback(const std::shared_ptr<
 controller_interface::InterfaceConfiguration
 MecanumDriveController::command_interface_configuration() const
 {
+  RCLCPP_DEBUG(get_node()->get_logger(), "command_interface_configuration()...");
   controller_interface::InterfaceConfiguration command_interfaces_config;
   command_interfaces_config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
 
+  std::string mystr = "params_.command_joint_names.size() = " + std::to_string(params_.command_joint_names.size());
+  RCLCPP_DEBUG(get_node()->get_logger(), mystr.c_str());
   command_interfaces_config.names.reserve(params_.command_joint_names.size());
   for (const auto & joint : params_.command_joint_names)
   {
+    std::string mystr = "Pushing command interface name: " + joint + "/" + params_.interface_name;
+    RCLCPP_DEBUG(get_node()->get_logger(), mystr.c_str());
     command_interfaces_config.names.push_back(joint + "/" + params_.interface_name);
   }
 
@@ -382,6 +387,28 @@ controller_interface::return_type MecanumDriveController::update_reference_from_
   else
   {
     auto current_ref_unstamped = *(input_ref_unstamped_.readFromRT());
+    //RCLCPP_DEBUG(get_node()->get_logger(), "Trying to read unstamped twist...");
+
+    if (std::isnan(current_ref_unstamped->linear.x)){
+      //RCLCPP_DEBUG(get_node()->get_logger(), " linear.x is NaN");
+    } else {
+      std::string strx = "linear.x = " + std::to_string(current_ref_unstamped->linear.x);
+      RCLCPP_DEBUG(get_node()->get_logger(), strx.c_str());
+    }
+
+    if (std::isnan(current_ref_unstamped->linear.y)){
+      //RCLCPP_DEBUG(get_node()->get_logger(), " linear.y is NaN");
+    } else {
+      std::string stry = "linear.y = " + std::to_string(current_ref_unstamped->linear.y);
+      RCLCPP_DEBUG(get_node()->get_logger(), stry.c_str());
+    }
+
+    if (std::isnan(current_ref_unstamped->angular.z)){
+      //RCLCPP_DEBUG(get_node()->get_logger(), " angular.z is NaN");
+    } else {
+      std::string strz = "angular.z = " + std::to_string(current_ref_unstamped->angular.z);
+      RCLCPP_DEBUG(get_node()->get_logger(), strz.c_str());
+    }
 
     if (
         !std::isnan(current_ref_unstamped->linear.x) && !std::isnan(current_ref_unstamped->linear.y) &&
@@ -529,9 +556,9 @@ controller_interface::return_type MecanumDriveController::update_and_write_comma
     controller_state_publisher_->unlockAndPublish();
   }
 
-  reference_interfaces_[0] = std::numeric_limits<double>::quiet_NaN();
+  /*reference_interfaces_[0] = std::numeric_limits<double>::quiet_NaN();
   reference_interfaces_[1] = std::numeric_limits<double>::quiet_NaN();
-  reference_interfaces_[2] = std::numeric_limits<double>::quiet_NaN();
+  reference_interfaces_[2] = std::numeric_limits<double>::quiet_NaN();*/
 
   return controller_interface::return_type::OK;
 }
