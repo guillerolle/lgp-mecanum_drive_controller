@@ -158,8 +158,8 @@ controller_interface::CallbackReturn MecanumDriveController::on_configure(
 
   rt_odom_state_publisher_->lock();
   rt_odom_state_publisher_->msg_.header.stamp = get_node()->now();
-  rt_odom_state_publisher_->msg_.header.frame_id = params_.odom_frame_id;
-  rt_odom_state_publisher_->msg_.child_frame_id = params_.base_frame_id;
+  rt_odom_state_publisher_->msg_.header.frame_id = params_.tf_frame+params_.odom_frame_id;
+  rt_odom_state_publisher_->msg_.child_frame_id = params_.tf_frame+params_.base_frame_id;
   rt_odom_state_publisher_->msg_.pose.pose.position.z = 0;
 
   auto & covariance = rt_odom_state_publisher_->msg_.twist.covariance;
@@ -215,7 +215,7 @@ controller_interface::CallbackReturn MecanumDriveController::on_configure(
 
   controller_state_publisher_->lock();
   controller_state_publisher_->msg_.header.stamp = get_node()->now();
-  controller_state_publisher_->msg_.header.frame_id = params_.odom_frame_id;
+  controller_state_publisher_->msg_.header.frame_id = params_.tf_frame+params_.odom_frame_id;
   controller_state_publisher_->unlock();
 
   RCLCPP_INFO(get_node()->get_logger(), "configure successful");
